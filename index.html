@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CHAOS LAB - カオスゲーム・フラクタル実験アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app-layout">
+    <!-- ヘッダー -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-icon">✦</span>
+          <span class="logo-text">CHAOS LAB</span>
+          <span class="logo-badge">v1.0</span>
+        </div>
+        <div class="preset-selector-group">
+          <label for="preset-select" class="visually-hidden">プリセット</label>
+          <select id="preset-select" class="select-styled" title="実験プリセットを選択">
+            <!-- JavaScriptで動的生成 -->
+          </select>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="mode-switch-group" role="tablist">
+          <button id="btn-mode-basic" class="mode-tab-btn active" role="tab" aria-selected="true" data-mode="basic">
+            基本モード (カオスゲーム)
+          </button>
+          <button id="btn-mode-affine" class="mode-tab-btn" role="tab" aria-selected="false" data-mode="affine">
+            上級モード (アフィンIFS)
+          </button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-export-json" class="btn-icon" title="実験設定をJSONファイルとして保存">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="btn-text">設定保存</span>
+        </button>
+        <button id="btn-import-json" class="btn-icon" title="JSONファイルから実験設定を読み込み">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="btn-text">設定読込</span>
+        </button>
+        <input type="file" id="file-input-json" accept=".json" style="display: none;">
+        
+        <button id="btn-export-png" class="btn-icon btn-highlight" title="現在のフラクタル図形を高解像度PNG画像として保存">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span class="btn-text">画像保存</span>
+        </button>
+
+        <button id="btn-toggle-sidebar" class="btn-icon mobile-only" title="設定パネルの開閉">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ領域 -->
+    <div class="app-body">
+      <!-- 左側：実験設定パネル (Sidebar) -->
+      <aside id="sidebar" class="app-sidebar">
+        <!-- モバイル用モード切替スイッチ -->
+        <div class="sidebar-mode-switch mobile-only-block">
+          <button id="btn-sidebar-mode-basic" class="btn-sidebar-mode active" data-mode="basic">基本モード</button>
+          <button id="btn-sidebar-mode-affine" class="btn-sidebar-mode" data-mode="affine">上級モード (IFS)</button>
+        </div>
+
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" data-tab="tab-rules">
+            <span class="tab-icon">⚙</span>
+            <span class="tab-label">ルール設定</span>
+          </button>
+          <button class="sidebar-tab" data-tab="tab-targets" id="tab-btn-targets">
+            <span class="tab-icon">🎯</span>
+            <span class="tab-label">ターゲット</span>
+          </button>
+          <button class="sidebar-tab" data-tab="tab-params">
+            <span class="tab-icon">⚡</span>
+            <span class="tab-label">パラメータ</span>
+          </button>
+          <button class="sidebar-tab" data-tab="tab-display">
+            <span class="tab-icon">🎨</span>
+            <span class="tab-label">描画・表示</span>
+          </button>
+        </div>
+
+        <div class="sidebar-content">
+          <!-- タブ1: ルール設定 -->
+          <div id="tab-rules" class="tab-pane active">
+            <!-- ルール選択方式 -->
+            <div class="panel-section">
+              <div class="section-title">
+                <span>ルールの選択方式</span>
+                <span class="badge" id="strategy-badge">確率指定</span>
+              </div>
+              <div class="strategy-selector">
+                <label class="radio-card">
+                  <input type="radio" name="selection-strategy" value="uniform">
+                  <span class="radio-label">均等ランダム</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="selection-strategy" value="weighted" checked>
+                  <span class="radio-label">確率指定</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="selection-strategy" value="sequence">
+                  <span class="radio-label">順番に実行</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 基本モード用ルールリスト -->
+            <div id="basic-rules-section" class="panel-section">
+              <div class="section-header">
+                <span class="section-title">基本移動ルール一覧</span>
+                <button id="btn-add-basic-rule" class="btn-xs btn-primary">＋ ルール追加</button>
+              </div>
+              <p class="section-desc">現在の点から次の点への移動方法を定義します。複数のルールを登録できます。</p>
+              <div id="basic-rules-list" class="rules-container">
+                <!-- JavaScriptで動的生成 -->
+              </div>
+            </div>
+
+            <!-- 上級モード用アフィン変換ルールリスト -->
+            <div id="affine-rules-section" class="panel-section" style="display: none;">
+              <div class="section-header">
+                <span class="section-title">アフィン変換ルール一覧 (IFS)</span>
+                <button id="btn-add-affine-rule" class="btn-xs btn-primary">＋ 変換追加</button>
+              </div>
+              <p class="section-desc">式: x' = ax + by + e,　y' = cx + dy + f</p>
+              <div id="affine-rules-list" class="rules-container">
+                <!-- JavaScriptで動的生成 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- タブ2: ターゲット設定 (基本モード用) -->
+          <div id="tab-targets" class="tab-pane">
+            <!-- 正多角形ジェネレーター -->
+            <div class="panel-section">
+              <div class="section-title">正多角形頂点の自動生成</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="poly-n">頂点数 (2〜20): <span id="poly-n-val" class="val-badge">3</span></label>
+                  <input type="range" id="poly-n" min="2" max="20" value="3" class="slider">
+                </div>
+                <div class="form-group">
+                  <label for="poly-r">大きさ (半径): <span id="poly-r-val" class="val-badge">1.0</span></label>
+                  <input type="range" id="poly-r" min="0.2" max="3.0" step="0.1" value="1.0" class="slider">
+                </div>
+                <div class="form-group">
+                  <label for="poly-rot">回転角度 (°): <span id="poly-rot-val" class="val-badge">0°</span></label>
+                  <input type="range" id="poly-rot" min="0" max="360" step="5" value="0" class="slider">
+                </div>
+              </div>
+              <button id="btn-generate-poly" class="btn btn-secondary btn-block">正多角形ターゲットを生成</button>
+            </div>
+
+            <!-- ターゲットリスト -->
+            <div class="panel-section">
+              <div class="section-header">
+                <span class="section-title">ターゲット一覧</span>
+                <button id="btn-add-target" class="btn-xs btn-secondary">＋ 任意追加</button>
+              </div>
+              <div class="toggle-row">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="chk-canvas-click-add">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label">描画エリアをクリックして追加</span>
+              </div>
+              <div id="targets-list" class="targets-container">
+                <!-- JavaScriptで動的生成 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- タブ3: 実験パラメータ -->
+          <div id="tab-params" class="tab-pane">
+            <div class="panel-section">
+              <div class="section-title">シミュレーション設定</div>
+              
+              <div class="form-group">
+                <label for="param-total-steps">総反復回数: <span id="total-steps-val" class="val-badge">100,000</span></label>
+                <input type="range" id="param-total-steps" min="1000" max="1000000" step="5000" value="100000" class="slider">
+                <div class="slider-quick-buttons">
+                  <button class="btn-chip" data-steps="10000">1万</button>
+                  <button class="btn-chip" data-steps="50000">5万</button>
+                  <button class="btn-chip active" data-steps="100000">10万</button>
+                  <button class="btn-chip" data-steps="500000">50万</button>
+                  <button class="btn-chip" data-steps="1000000">100万</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="param-speed">描画速度 (点/秒): <span id="speed-val" class="val-badge">15,000</span></label>
+                <input type="range" id="param-speed" min="1000" max="100000" step="1000" value="15000" class="slider">
+              </div>
+
+              <div class="form-group">
+                <label for="param-burnin">初期安定化 (Burn-in回数): <span id="burnin-val" class="val-badge">50</span></label>
+                <input type="number" id="param-burnin" min="0" max="2000" value="50" class="input-styled">
+              </div>
+
+              <div class="form-group">
+                <label>初期点 P(0) の座標</label>
+                <div class="toggle-row mb-1">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="chk-random-initial" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="toggle-label">ランダム配置</span>
+                </div>
+                <div class="coord-inputs" id="initial-coord-inputs" style="display: none;">
+                  <div class="input-with-label"><span>X:</span><input type="number" id="param-init-x" step="0.1" value="0" class="input-styled"></div>
+                  <div class="input-with-label"><span>Y:</span><input type="number" id="param-init-y" step="0.1" value="0" class="input-styled"></div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="param-seed">乱数シード (再現性)</label>
+                <div class="input-group">
+                  <input type="text" id="param-seed" value="chaos-lab" class="input-styled">
+                  <button id="btn-random-seed" class="btn btn-secondary" title="新しいランダムシードを生成">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- タブ4: 描画・表示 -->
+          <div id="tab-display" class="tab-pane">
+            <div class="panel-section">
+              <div class="section-title">点の描画スタイル</div>
+
+              <div class="form-group">
+                <label for="point-size">点のサイズ (px): <span id="point-size-val" class="val-badge">1.5</span></label>
+                <input type="range" id="point-size" min="0.5" max="8.0" step="0.5" value="1.5" class="slider">
+              </div>
+
+              <div class="form-group">
+                <label for="point-opacity">点の透明度: <span id="point-opacity-val" class="val-badge">75%</span></label>
+                <input type="range" id="point-opacity" min="0.05" max="1.0" step="0.05" value="0.75" class="slider">
+              </div>
+
+              <div class="form-group">
+                <label>カラーモード</label>
+                <div class="color-mode-selector">
+                  <label class="radio-card">
+                    <input type="radio" name="color-mode" value="rule" checked>
+                    <span class="radio-label">ルール別の色分け</span>
+                  </label>
+                  <label class="radio-card">
+                    <input type="radio" name="color-mode" value="single">
+                    <span class="radio-label">単色描画</span>
+                  </label>
+                </div>
+                <div id="single-color-picker-group" class="mt-2" style="display: none;">
+                  <label for="single-color">単色選択:</label>
+                  <input type="color" id="single-color" value="#00f2fe" class="color-picker">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="bg-color">キャンバス背景色</label>
+                <div class="color-row">
+                  <input type="color" id="bg-color" value="#0a0e17" class="color-picker">
+                  <span id="bg-color-hex" class="hex-text">#0a0e17</span>
+                  <div class="preset-colors">
+                    <button class="color-chip" style="background:#0a0e17" data-color="#0a0e17" title="ディープダーク"></button>
+                    <button class="color-chip" style="background:#000000" data-color="#000000" title="漆黒"></button>
+                    <button class="color-chip" style="background:#0b192c" data-color="#0b192c" title="ナイトブルー"></button>
+                    <button class="color-chip" style="background:#ffffff" data-color="#ffffff" title="ホワイト"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-title">オーバーレイ表示</div>
+              <div class="toggle-list">
+                <div class="toggle-row">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="chk-show-targets" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="toggle-label">ターゲットの表示</span>
+                </div>
+                <div class="toggle-row">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="chk-show-current-pt" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="toggle-label">現在位置 P(n) のハイライト</span>
+                </div>
+                <div class="toggle-row">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="chk-show-grid" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="toggle-label">グリッド・座標軸の表示</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右側：描画エリア (Canvas Viewport) -->
+      <main class="app-viewport" id="viewport">
+        <!-- Canvas レイヤー -->
+        <div class="canvas-container" id="canvas-container">
+          <!-- 点を描画する累積Canvas -->
+          <canvas id="points-canvas"></canvas>
+          <!-- ターゲット・現在点・UIを描画するオーバーレイCanvas -->
+          <canvas id="ui-canvas"></canvas>
+        </div>
+
+        <!-- フローティングHUD (ステータス・進捗情報) -->
+        <div class="floating-hud">
+          <div class="hud-item progress-block">
+            <div class="progress-labels">
+              <span class="hud-label">反復回数</span>
+              <span class="hud-value"><span id="hud-current-step">0</span> / <span id="hud-total-step">100,000</span></span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="hud-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="hud-metrics">
+            <div class="hud-metric">
+              <span class="metric-label">進捗</span>
+              <span class="metric-val" id="hud-percent">0.0%</span>
+            </div>
+            <div class="hud-metric">
+              <span class="metric-label">処理速度</span>
+              <span class="metric-val" id="hud-speed">0 pts/s</span>
+            </div>
+            <div class="hud-metric">
+              <span class="metric-label">直前ルール</span>
+              <span class="metric-val" id="hud-last-rule">
+                <span class="rule-dot" id="hud-rule-dot"></span>
+                <span id="hud-rule-name">-</span>
+              </span>
+            </div>
+            <div class="hud-metric hide-on-mobile">
+              <span class="metric-label">現在座標 P(n)</span>
+              <span class="metric-val mono" id="hud-coords">(0.000, 0.000)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- フローティング・ビュー操作コントロール (右側) -->
+        <div class="floating-view-controls">
+          <button id="btn-zoom-in" class="view-btn" title="拡大 (ズームイン)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button id="btn-zoom-out" class="view-btn" title="縮小 (ズームアウト)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button id="btn-fit-view" class="view-btn" title="全体表示に戻す (フィット)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+          <button id="btn-clear-canvas" class="view-btn" title="描画結果を消去">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+
+        <!-- フローティング・実験コントロールバー (下部中央固定) -->
+        <div class="floating-sim-controls">
+          <button id="btn-start" class="btn-ctrl btn-play" title="シミュレーション開始 / 再開">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="btn-start-label">開始</span>
+          </button>
+
+          <button id="btn-pause" class="btn-ctrl btn-secondary" title="一時停止" disabled>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span>一時停止</span>
+          </button>
+
+          <button id="btn-step" class="btn-ctrl btn-secondary" title="1ステップだけ実行">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
+            <span>1ステップ</span>
+          </button>
+
+          <button id="btn-stop" class="btn-ctrl btn-secondary" title="停止" disabled>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>
+            <span>停止</span>
+          </button>
+
+          <button id="btn-reset" class="btn-ctrl btn-danger" title="初期状態にリセット">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            <span>リセット</span>
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <!-- 通知トースト表示コンテナ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- モバイル用サイドバーオーバーレイ背景 -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
